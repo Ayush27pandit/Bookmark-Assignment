@@ -2,25 +2,31 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
-import { Trash2, ExternalLink, Globe } from 'lucide-react'
-import { deleteBookmark } from '@/app/actions'
-import { motion, AnimatePresence } from 'framer-motion'
+import { BookmarkCard } from './BookmarkCard'
+import { EmptyState } from './EmptyState'
+import { AnimatePresence } from 'framer-motion'
+import { getBookmarks } from '@/app/actions'
+import { Button } from './ui/button'
+import { Loader2, ChevronDown } from 'lucide-react'
 
-type Bookmark = {
+interface Bookmark {
     id: string
     title: string
     url: string
     created_at: string
-    user_id: string
 }
+
+const PAGE_SIZE = 12
 
 export default function BookmarkList({ initialBookmarks }: { initialBookmarks: Bookmark[] }) {
     const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks)
+    const [loading, setLoading] = useState(false)
+    const [hasMore, setHasMore] = useState(initialBookmarks.length === PAGE_SIZE)
     const supabase = createClient()
 
     useEffect(() => {
-        // Update local state when initialBookmarks prop changes (e.g. after server action revalidation)
         setBookmarks(initialBookmarks)
+        setHasMore(initialBookmarks.length === PAGE_SIZE)
     }, [initialBookmarks])
 
     useEffect(() => {
@@ -35,7 +41,11 @@ export default function BookmarkList({ initialBookmarks }: { initialBookmarks: B
                 },
                 (payload) => {
                     if (payload.eventType === 'INSERT') {
-                        setBookmarks((current) => [payload.new as Bookmark, ...current])
+                        setBookmarks((current) => {
+                            // Avoid duplicates if insert happens during pagination
+                            if (current.some(b => b.id === payload.new.id)) return current
+                            return [payload.new as Bookmark, ...current]
+                        })
                     } else if (payload.eventType === 'DELETE') {
                         setBookmarks((current) => current.filter((b) => b.id !== payload.old.id))
                     } else if (payload.eventType === 'UPDATE') {
@@ -50,69 +60,68 @@ export default function BookmarkList({ initialBookmarks }: { initialBookmarks: B
         }
     }, [supabase])
 
-    const handleDelete = async (id: string) => {
-        // Optimistic update
-        const previous = bookmarks
-        setBookmarks((current) => current.filter((b) => b.id !== id))
+    const handleLoadMore = async () => {
+        if (loading || !hasMore) return
 
-        const res = await deleteBookmark(id)
-        if (!res.success) {
-            // Revert if failed
-            setBookmarks(previous)
-            alert(res.error)
+        setLoading(true)
+        const lastBookmark = bookmarks[bookmarks.length - 1]
+        const cursor = lastBookmark?.created_at
+
+        const res = await getBookmarks(PAGE_SIZE, cursor)
+
+        if (res.success && res.data) {
+            setBookmarks(current => [...current, ...res.data])
+            setHasMore(res.data.length === PAGE_SIZE)
         }
+        setLoading(false)
+    }
+
+    const handleDelete = (id: string) => {
+        setBookmarks((current) => current.filter((b) => b.id !== id))
     }
 
     if (bookmarks.length === 0) {
         return (
-            <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-                <p className="text-lg">No bookmarks yet.</p>
-                <p className="text-sm">Add one to get started!</p>
+            <div className="pt-12">
+                <EmptyState onAddClick={() => {
+                    const input = document.querySelector('input[name="url"]') as HTMLInputElement
+                    input?.focus()
+                }} />
             </div>
         )
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence mode="popLayout">
-                {bookmarks.map((bookmark) => (
-                    <motion.div
-                        layout
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        key={bookmark.id}
-                        className="group relative bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow"
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
+                <AnimatePresence mode="popLayout" initial={false}>
+                    {bookmarks.map((bookmark) => (
+                        <BookmarkCard
+                            key={bookmark.id}
+                            bookmark={bookmark}
+                            onDelete={handleDelete}
+                        />
+                    ))}
+                </AnimatePresence>
+            </div>
+
+            {hasMore && (
+                <div className="flex justify-center pt-4">
+                    <Button
+                        variant="outline"
+                        onClick={handleLoadMore}
+                        disabled={loading}
+                        className="rounded-full px-8 border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all bg-card shadow-sm h-11"
                     >
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                                <Globe className="w-5 h-5" />
-                            </div>
-                            <button
-                                onClick={() => handleDelete(bookmark.id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
-                                title="Delete bookmark"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate mb-1" title={bookmark.title}>
-                            {bookmark.title}
-                        </h3>
-
-                        <a
-                            href={bookmark.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-gray-500 dark:text-gray-400 truncate block hover:underline hover:text-blue-500 flex items-center gap-1"
-                        >
-                            {new URL(bookmark.url).hostname}
-                            <ExternalLink className="w-3 h-3 inline" />
-                        </a>
-                    </motion.div>
-                ))}
-            </AnimatePresence>
+                        {loading ? (
+                            <Loader2 size={16} className="animate-spin mr-2" />
+                        ) : (
+                            <ChevronDown size={16} className="mr-2" />
+                        )}
+                        {loading ? "Loading..." : "Load more bookmarks"}
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

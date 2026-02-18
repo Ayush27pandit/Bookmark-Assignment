@@ -1,8 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import AddBookmarkForm from '@/components/AddBookmarkForm'
+import { BookmarkInput } from '@/components/BookmarkInput'
 import BookmarkList from '@/components/BookmarkList'
-import { LogOut } from 'lucide-react'
+import { Navbar } from '@/components/Navbar'
 
 export default async function Dashboard() {
     const supabase = await createClient()
@@ -18,48 +18,47 @@ export default async function Dashboard() {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+        .limit(12)
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100">
-            <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
-                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-xl">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-lg">
-                            B
-                        </div>
-                        <span>Bookmarker</span>
+        <div className="min-h-screen flex flex-col">
+            <Navbar userEmail={user.email} />
+
+            <main className="flex-1 container max-w-[1200px] mx-auto px-4 py-8">
+                <div className="max-w-[800px] mx-auto mb-12">
+                    <div className="flex flex-col gap-1 mb-6">
+                        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                            Collect your inspiration
+                        </h1>
+                        <p className="text-sm text-slate-500 font-medium tracking-tight">
+                            Save, organize and revisit the best parts of the web.
+                        </p>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-500 hidden sm:inline-block">Logged in as {user.email}</span>
-                        <form action="/auth/signout" method="post">
-                            <button
-                                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                                formAction={async () => {
-                                    'use server'
-                                    const supabase = await createClient()
-                                    await supabase.auth.signOut()
-                                    redirect('/')
-                                }}
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span className="hidden sm:inline">Sign Out</span>
-                            </button>
-                        </form>
+                    <BookmarkInput />
+                </div>
+
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between border-b pb-4">
+                        <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                            Recently Added
+                        </h2>
+                        <span className="text-xs font-medium text-slate-400">
+                            {bookmarks?.length || 0} Bookmarks
+                        </span>
                     </div>
+
+                    <BookmarkList initialBookmarks={bookmarks || []} />
                 </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold mb-2">My Bookmarks</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Manage and access your favorite links from anywhere.</p>
-                </div>
-
-                <AddBookmarkForm />
-
-                <BookmarkList initialBookmarks={bookmarks || []} />
             </main>
+
+            <footer className="border-t py-8 mt-auto">
+                <div className="container max-w-[1200px] mx-auto px-4 text-center">
+                    <p className="text-xs text-slate-400 font-medium tracking-wide">
+                        Powered by Supabase & Next.js • Design inspired by Raycast
+                    </p>
+                </div>
+            </footer>
         </div>
     )
 }
