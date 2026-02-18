@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { addBookmark } from '@/app/actions'
 
+import { useToast } from '@/hooks/use-toast'
+
 export function BookmarkInput() {
+    const { toast } = useToast()
     const [isPending, startTransition] = useTransition()
     const [showTitle, setShowTitle] = useState(false)
     const formRef = useRef<HTMLFormElement>(null)
@@ -18,8 +21,17 @@ export function BookmarkInput() {
             if (res.success) {
                 formRef.current?.reset()
                 setShowTitle(false)
+                toast({
+                    title: 'Bookmark added!',
+                    description: 'Your link has been saved successfully.',
+                    variant: 'success'
+                })
             } else {
-                alert(res.error)
+                toast({
+                    title: 'Failed to add bookmark',
+                    description: res.error,
+                    variant: 'destructive'
+                })
             }
         })
     }
@@ -53,7 +65,7 @@ export function BookmarkInput() {
                                 <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                                 <Input
                                     name="title"
-                                    placeholder="Title (optional)"
+                                    placeholder="Title"
                                     className="pl-10 h-11 bg-input border-none focus-visible:ring-1 focus-visible:ring-primary rounded-lg"
                                     autoComplete="off"
                                     disabled={isPending}

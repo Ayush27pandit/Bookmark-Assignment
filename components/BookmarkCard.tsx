@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { deleteBookmark } from '@/app/actions'
 import { motion } from 'framer-motion'
 import { isToday, isYesterday, format } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
 
 interface Bookmark {
     id: string
@@ -16,6 +17,7 @@ interface Bookmark {
 }
 
 export function BookmarkCard({ bookmark, onDelete }: { bookmark: Bookmark, onDelete: (id: string) => void }) {
+    const { toast } = useToast()
     const [isDeleting, setIsDeleting] = useState(false)
     const [copied, setCopied] = useState(false)
     const domain = new URL(bookmark.url).hostname.replace('www.', '')
@@ -23,6 +25,11 @@ export function BookmarkCard({ bookmark, onDelete }: { bookmark: Bookmark, onDel
     const handleCopy = () => {
         navigator.clipboard.writeText(bookmark.url)
         setCopied(true)
+        toast({
+            title: 'Copied to clipboard',
+            description: bookmark.url,
+            variant: 'success'
+        })
         setTimeout(() => setCopied(false), 2000)
     }
 
@@ -31,9 +38,18 @@ export function BookmarkCard({ bookmark, onDelete }: { bookmark: Bookmark, onDel
         const res = await deleteBookmark(bookmark.id)
         if (res.success) {
             onDelete(bookmark.id)
+            toast({
+                title: 'Deleted',
+                description: 'Bookmark removed successfully.',
+                variant: 'default'
+            })
         } else {
             setIsDeleting(false)
-            alert(res.error)
+            toast({
+                title: 'Error deleting',
+                description: res.error,
+                variant: 'destructive'
+            })
         }
     }
 

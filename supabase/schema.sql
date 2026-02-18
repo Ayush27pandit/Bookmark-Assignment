@@ -4,7 +4,8 @@ create table bookmarks (
   created_at timestamptz default now(),
   user_id uuid references auth.users not null,
   title text not null,
-  url text not null
+  url text not null,
+  unique(user_id, url)
 );
 
 -- Enable Row Level Security

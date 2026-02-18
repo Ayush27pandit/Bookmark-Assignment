@@ -9,7 +9,7 @@
   --popover-foreground: #0a1931;
   --primary: #0047ab;
   --primary-foreground: #ffffff;
-  --secondary: #050505;
+  --secondary: #89b7fb;
   --secondary-foreground: #ffffff;
   --muted: #e5eaf5;
   --muted-foreground: #4a5568;
@@ -193,11 +193,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full;
+  background-color: var(--color-muted);
+  border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-300;
+  background-color: var(--color-border);
 }
