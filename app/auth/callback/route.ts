@@ -6,8 +6,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const token_hash = searchParams.get('token_hash')
     const type = searchParams.get('type') as EmailOtpType | null
-    const next = searchParams.get('next') ?? '/dashboard'
+    let next = searchParams.get('next') ?? '/dashboard'
     const code = searchParams.get('code')
+
+    // Safety: help prevent open redirect attacks
+    if (next.startsWith('http') || next.startsWith('//')) {
+        next = '/dashboard'
+    }
 
     if (code) {
         const supabase = await createClient()

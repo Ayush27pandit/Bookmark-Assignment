@@ -8,11 +8,11 @@ export async function addBookmark(formData: FormData) {
     await new Promise(resolve => setTimeout(resolve, 800));
     const supabase = await createClient()
 
-    const title = formData.get('title') as string
-    const url = formData.get('url') as string
+    const title = (formData.get('title') as string || '').trim()
+    const url = (formData.get('url') as string || '').trim()
 
     if (!title || !url) {
-        return { error: 'Title and URL are required' }
+        return { error: 'Both Title and URL are required' }
     }
 
     // Basic URL validation
