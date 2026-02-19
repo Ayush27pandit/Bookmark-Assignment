@@ -11,18 +11,23 @@ A high-performance, resilient, and beautifully designed link management system. 
 
 ---
 
-## 🚀 Key Features
+## 🚀 Production-Grade Features
 
-- **⚡ Real-time Sync**: Bi-directional data flow using Supabase WebSockets (Realtime). No refresh needed.
-- **🛡️ Failure Engineering**: (See below) Built to handle the "ugly" side of the web.
-- **🏗️ Metadata Fetching**: Automatic title extraction from URLs with exponential backoff retries.
-- **🎨 Premium UI**: 
-  - Dynamic 3-column grid for maximum readability.
-  - Custom-built Toast notification system (Top-Center).
-  - Raycast-inspired cards with hover micro-interactions.
-- **🔒 Secure by Design**:
-  - Row Level Security (RLS) ensures users can *only* interact with their own data.
-  - Hardened Auth Callbacks (Open-redirect protection).
+### 🛡️ Security Architecture
+- **PostgreSQL Row Level Security (RLS)**: Enforced isolation at the database layer. No user can ever query another user's bookmarks, verified by cryptographically signed JWTs.
+- **Hardened Auth Callbacks**: Protection against Open Redirect attacks by validating destination internal paths.
+- **Server-Side Validation**: Robust URL sanitization and `new URL()` constructor validation inside secure Server Actions.
+- **JWT Integrity**: All database operations are authenticated via Supabase's secure server-side session management (`getUser`).
+
+### ⚡ Performance & Optimization
+- **Supabase Realtime (WebSockets)**: Bi-directional sync that updates the UI instantly across all open tabs/devices without a single page refresh.
+- **Cursor-based Pagination**: High-performance data fetching that scales to thousands of bookmarks by using timestamp-based cursors instead of slow `OFFSET` methods.
+- **Smart Metadata Fetching**: 
+  - **Asynchronous Processing**: Titles are fetched on-demand during the creation flow.
+  - **Exponential Backoff**: Retries logic (1s, 2s) handles transient 5xx network errors.
+  - **Abort Tracking**: Strict 5s timeouts prevent server-side process hanging.
+- **Optimistic UI & Transitions**: Leverages React 19's `useTransition` and Framer Motion for a "zero-latency" feel during add/delete actions.
+- **Next.js 15 & Tailwind 4.0**: Built using the latest, most optimized versions of the modern web stack.
 
 ---
 
