@@ -1,66 +1,98 @@
-# Smart Bookmark App
+# 🔖 Smart Bookmark Manager
 
-A simple, real-time bookmark manager built with Next.js 14, Supabase, and Tailwind CSS.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-blueviolet?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-## Features
+A high-performance, resilient, and beautifully designed link management system. Built with a focus on speed, reliability, and modern developer aesthetics.
 
-- **Google OAuth Authentication**: Secure login with no passwords.
-- **Private Bookmarks**: Each user has their own isolated list of bookmarks.
-- **Realtime Updates**: Bookmarks sync instantly across devices and tabs without refreshing.
-- **Optimistic UI**: Instant feedback when adding or deleting bookmarks.
-- **Responsive Design**: Works on Desktop, Tablet, and Mobile.
-- **Dark Mode Support**: Styled for both light and dark environments.
+> **Design Philosophy**: Minimalist SaaS aesthetic, inspired by tools like Raycast and Vercel.
 
-## Tech Stack
+---
 
-- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS, Framer Motion
-- **Backend / Database**: Supabase (PostgreSQL, Auth, Realtime)
-- **Deployment**: Vercel
+## 🚀 Key Features
 
-## Setup Instructions
+- **⚡ Real-time Sync**: Bi-directional data flow using Supabase WebSockets (Realtime). No refresh needed.
+- **🛡️ Failure Engineering**: (See below) Built to handle the "ugly" side of the web.
+- **🏗️ Metadata Fetching**: Automatic title extraction from URLs with exponential backoff retries.
+- **🎨 Premium UI**: 
+  - Dynamic 3-column grid for maximum readability.
+  - Custom-built Toast notification system (Top-Center).
+  - Raycast-inspired cards with hover micro-interactions.
+- **🔒 Secure by Design**:
+  - Row Level Security (RLS) ensures users can *only* interact with their own data.
+  - Hardened Auth Callbacks (Open-redirect protection).
 
-### 1. Clone the repository
+---
+
+## 🛠️ Failure Engineering & Resilience
+
+Unlike basic bookmark apps, this version is hardened for production:
+
+1. **Robust URL Validation**: Server-side validation using the native `URL` constructor with protocol sanitization.
+2. **Exponential Backoff**: Title fetching utilities wait 1s, then 2s for transient 5xx errors before falling back to domain names.
+3. **Insert Race Guards**: Database-level unique constraints (`user_id`, `url`) prevent duplicate bookmarks even during concurrent requests.
+4. **Resilient fetching**: AbortControllers enforce strict 5s timeouts on metadata fetches to prevent server-side hanging.
+
+---
+
+## 💻 Tech Stack
+
+- **Core**: Next.js 15 (App Router, Server Actions)
+- **Styling**: Tailwind CSS 4.0, Framer Motion
+- **Database/Auth**: Supabase (PostgreSQL, SSR)
+- **Icons**: Lucide React
+- **Date Handling**: date-fns
+
+---
+
+## 🏁 Getting Started
+
+### 1. Database Setup
+
+Run the following in your Supabase SQL Editor:
+
+```sql
+-- Create table with unique constraint
+create table bookmarks (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  user_id uuid references auth.users not null,
+  title text not null,
+  url text not null,
+  unique(user_id, url)
+);
+
+-- Enable RLS
+alter table bookmarks enable row level security;
+
+-- Policies
+create policy "Users can manage their own bookmarks"
+on bookmarks for all
+using ( auth.uid() = user_id );
+
+-- Enable Realtime
+alter publication supabase_realtime add table bookmarks;
+```
+
+### 2. Environment Configuration
+
+Create a `.env.local` file:
+
 ```bash
-git clone <repository-url>
-cd smart-bookmark-app
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### 3. Install & Run
+
+```bash
 npm install
-```
-
-### 2. Set up Supabase
-
-1. Create a new project on [Supabase](https://supabase.com/).
-2. Go to **Authentication -> Providers** and enable **Google**.
-   - You will need a Google Cloud Project to get the `Client ID` and `Client Secret`.
-   - Set the Authorized Redirect URI in Google Console to `https://<your-project>.supabase.co/auth/v1/callback`.
-3. Go to **SQL Editor** in Supabase and run the content of `supabase/schema.sql`. This will create the table and RLS policies.
-4. Get your project credentials from **Project Settings -> API**.
-
-### 3. Configure Environment Variables
-
-Rename `.env.local.example` to `.env.local` and add your keys:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### 4. Run Locally
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser.
+---
 
-## Deployment on Vercel
-
-1. Push your code to a GitHub repository.
-2. Import the project in Vercel.
-3. Add the `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as Environment Variables in Vercel.
-4. **Important**: Add your Vercel deployment domain (e.g., `https://my-app.vercel.app`) to the **Redirect URLs** in Supabase Auth settings.
-
-## Challenges & Solutions
-
-- **Realtime Sync**: Leveraged Supabase's `realtime` channel to listen for `INSERT` and `DELETE` events on the client side, keeping the UI in sync without manual refetching.
-- **RLS Security**: Implemented strict Row Level Security policies to ensure users can only access their own data, verified by passing the JWT from Supabase Auth.
-- **Optimistic Updates**: Used local state updates immediately upon action to make the app feel faster, reverting only if the server action fails.
+## 📜 License
+MIT License - feel free to use this as a boilerplate for your own productivity tools.
